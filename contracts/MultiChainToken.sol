@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "hardhat/console.sol";
+
 // deploy this contract to 2+ chains for testing.
 //
 // sendTokens() function works like this:
@@ -33,15 +35,25 @@ contract MultiChainToken is ERC20, ILayerZeroReceiver, Ownable {
         renounceOwnership();
     }
 
-    // send tokens to another chain.
-    // this function sends the tokens from your address to the same address on the destination.
     function sendTokens(
         uint16 _chainId,                            // send tokens to this chainId
-        bytes calldata _dstMultiChainTokenAddr,     // destination address of MultiChainToken
+        bytes memory _dstMultiChainTokenAddr,     // destination address of MultiChainToken
         uint _qty                                   // how many tokens to send
     )
     public
-    payable
+    payable 
+    {
+        _sendTokens(_chainId, _dstMultiChainTokenAddr, _qty);
+    }
+
+    // send tokens to another chain.
+    // this function sends the tokens from your address to the same address on the destination.
+    function _sendTokens(
+        uint16 _chainId,                            // send tokens to this chainId
+        bytes memory _dstMultiChainTokenAddr,     // destination address of MultiChainToken
+        uint _qty                                   // how many tokens to send
+    )
+    private
     {
         // burn the tokens locally.
         // tokens will be minted on the destination.
