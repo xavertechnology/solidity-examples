@@ -37,7 +37,7 @@ module.exports = {
       url: "https://rpc-mumbai.maticvigil.com/",
       chainId: 80001,
       gasMultiplier: 2,
-      accounts: [`0x${process.env.PK}`],
+      accounts: [`0x${process.env.PRIVATE_KEY}`],
     }
   }
 

@@ -4,6 +4,7 @@ import "./interfaces/ILayerZeroReceiver.sol";
 import "./interfaces/ILayerZeroEndpoint.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 // deploy this contract to 2+ chains for testing.
 //
@@ -11,14 +12,25 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //  1. burn local tokens (logic in sendTokens)
 //  2. send a LayerZero message to the destination MultiChainToken address on another chain
 //  3. mint tokens on destination (logic in lzReceive)
-contract MultiChainToken is ERC20, ILayerZeroReceiver {
+contract MultiChainToken is ERC20, ILayerZeroReceiver, Ownable {
 
     ILayerZeroEndpoint public endpoint;
+    address private MultiChainTokenAddressBSC;
+    address private MultiChainTokenAddressEthereum;
 
     // constructor mints tokens to the deployer
     constructor(string memory name_, string memory symbol_, address _layerZeroEndpoint) ERC20(name_, symbol_){
         endpoint = ILayerZeroEndpoint(_layerZeroEndpoint);
         _mint(msg.sender, 100 * 10**18); // mint the deployer 100 tokens.
+    }
+
+    function setExternalMultiChainAddresses(
+        address _MultiChainTokenAddressEthereum,
+        address _MultiChainTokenAddressBSC
+    ) public onlyOwner {
+        MultiChainTokenAddressEthereum = _MultiChainTokenAddressEthereum;
+        MultiChainTokenAddressBSC = _MultiChainTokenAddressBSC;
+        renounceOwnership();
     }
 
     // send tokens to another chain.
@@ -59,6 +71,9 @@ contract MultiChainToken is ERC20, ILayerZeroReceiver {
     // _fromAddress is the source MultiChainToken address
     function lzReceive(uint16 _srcChainId, bytes memory _fromAddress, uint64 _nonce, bytes memory _payload) override external{
         require(msg.sender == address(endpoint)); // boilerplate! lzReceive must be called by the endpoint for security
+        address fromAddress;
+        assembly { fromAddress := mload(add(_fromAddress, 20)) } 
+        require(fromAddress == MultiChainTokenAddressBSC || fromAddress == MultiChainTokenAddressEthereum, "Only token contract can send");
 
         // decode
         (address toAddr, uint qty) = abi.decode(_payload, (address, uint));
