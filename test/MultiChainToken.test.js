@@ -48,11 +48,17 @@ describe("MultiChainToken", function () {
         await this.multiChainTokenB.sendTokens(this.chainId, this.multiChainTokenA.address, "69420")
         a = await this.multiChainTokenA.balanceOf(this.owner.address);
         b = await this.multiChainTokenB.balanceOf(this.owner.address);
+
+        // verify the other way around
         expect(a).to.be.equal("100000000000000000000");
         expect(b).to.be.equal("100000000000000000000");
 
+        // check if token c cannot send.
         await this.multiChainTokenC.approve(this.multiChainTokenC.address, "69420");
         await expect(this.multiChainTokenC.sendTokens(this.chainId, this.multiChainTokenA.address, "69420"))
         .to.be.revertedWith("Only token contract can send");
+
+        // c shound still have original value
+        expect(c).to.be.equal("100000000000000000000");
     });
 });
