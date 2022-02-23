@@ -2,6 +2,7 @@ pragma solidity ^0.8.4;
 
 import "./interfaces/ILayerZeroReceiver.sol";
 import "./interfaces/ILayerZeroEndpoint.sol";
+import "./libraries/AddressByteEncoder.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -37,13 +38,14 @@ contract MultiChainToken is ERC20, ILayerZeroReceiver, Ownable {
 
     function sendTokens(
         uint16 _chainId,                            // send tokens to this chainId
-        bytes memory _dstMultiChainTokenAddr,     // destination address of MultiChainToken
+        address _dstMultiChainTokenAddr,     // destination address of MultiChainToken
         uint _qty                                   // how many tokens to send
     )
     public
     payable 
     {
-        _sendTokens(_chainId, _dstMultiChainTokenAddr, _qty);
+        bytes memory adr = AddressByteEncoder.addrToPackedBytes(_dstMultiChainTokenAddr);
+        _sendTokens(_chainId, adr, _qty);
     }
 
     // send tokens to another chain.
@@ -83,9 +85,8 @@ contract MultiChainToken is ERC20, ILayerZeroReceiver, Ownable {
     // _fromAddress is the source MultiChainToken address
     function lzReceive(uint16 _srcChainId, bytes memory _fromAddress, uint64 _nonce, bytes memory _payload) override external{
         require(msg.sender == address(endpoint)); // boilerplate! lzReceive must be called by the endpoint for security
-        address fromAddress;
-        assembly { fromAddress := mload(add(_fromAddress, 20)) } 
-        require(fromAddress == MultiChainTokenAddressBSC || fromAddress == MultiChainTokenAddressEthereum, "Only token contract can send");
+        address fromAddress = AddressByteEncoder.packedBytesToAddr(_fromAddress);
+        require(fromAddress == MultiChainTokenAddressBSC || fromAddress == MultiChainTokenAddressEthereum, "Only token contract a and b can send");
 
         // decode
         (address toAddr, uint qty) = abi.decode(_payload, (address, uint));

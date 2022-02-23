@@ -11,11 +11,20 @@ describe("MultiChainToken", function () {
         this.chainId = 123;
 
         // create a LayerZero Endpoint mock for testing
+        const AddressByteEncoder = await ethers.getContractFactory("AddressByteEncoder");
+        this.addressByteEncoder = await AddressByteEncoder.deploy();
+        await this.addressByteEncoder.deployed();
+        
         const LayerZeroEndpointMock = await ethers.getContractFactory("LayerZeroEndpointMock");
         this.layerZeroEndpointMock = await LayerZeroEndpointMock.deploy();
 
+        const MultiChainToken = await ethers.getContractFactory("MultiChainToken", {
+            libraries: {
+                AddressByteEncoder: this.addressByteEncoder.address
+            }
+        });
+
         // create two MultiChainCounter instances
-        const MultiChainToken = await ethers.getContractFactory("MultiChainToken");
         this.multiChainTokenA = await MultiChainToken.deploy("NAME1", "SYM1", this.layerZeroEndpointMock.address);
         this.multiChainTokenB = await MultiChainToken.deploy("NAME2", "SYM2", this.layerZeroEndpointMock.address);
         this.multiChainTokenC = await MultiChainToken.deploy("NAME3", "SYM3", this.layerZeroEndpointMock.address);
@@ -56,7 +65,7 @@ describe("MultiChainToken", function () {
         // check if token c cannot send.
         await this.multiChainTokenC.approve(this.multiChainTokenC.address, "69420");
         await expect(this.multiChainTokenC.sendTokens(this.chainId, this.multiChainTokenA.address, "69420"))
-        .to.be.revertedWith("Only token contract can send");
+        .to.be.revertedWith("Only token contract a and b can send");
 
         // c shound still have original value
         expect(c).to.be.equal("100000000000000000000");
